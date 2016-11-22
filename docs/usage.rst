@@ -68,6 +68,38 @@ It's also possible to pass in an instance of your request model;
     response = api(request_model=request_model)
 
 
+Holding the API to account
+--------------------------
+
+That's right, we were concerned our API wasn't going to do what it said it
+would. That would be hard to imagine for the trivial example we have above
+however accidents do happen, developers are only human.
+
+Remember our definition of a book?
+
+.. code-block:: python
+
+    class Book(Model):
+        title = StringType(required=True, min_length=3)
+
+If for some reason the endpoint at https://example.com/books/ returned a book
+that contained a title less than three characters in length schematics would
+kindly raise a ``DataError`` for us.
+
+For example;
+
+.. code-block:: python
+
+    from schematics.exceptions import DataError
+
+    try:
+        response = api(in_print=True)
+    except DataError as e:
+        # Oh no, our API provider didn't give us back what they said they would
+        # e would now contain something like:
+        # schematics.exceptions.DataError: {'title': ValidationError("String value is too short.")}
+
+
 HTTP request type
 -----------------
 

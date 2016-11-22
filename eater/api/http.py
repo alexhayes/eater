@@ -81,7 +81,7 @@ class HTTPEater(BaseEater):
 
         if response.headers['content-type'] == 'application/json':
             raw_data = response.json()
-            return self.response_cls(raw_data=raw_data)
+            return self.response_cls(raw_data=raw_data, validate=True)
 
         raise NotImplementedError(
             "Content type '%s' is not implemented. Class %s should implement a handle_response method." % (

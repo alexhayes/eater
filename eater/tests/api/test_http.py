@@ -11,6 +11,7 @@ import pytest
 import requests_mock
 from requests.structures import CaseInsensitiveDict
 from schematics import Model
+from schematics.exceptions import DataError
 from schematics.types import StringType
 
 from eater import HTTPEater
@@ -75,3 +76,26 @@ def test_get_request():
         actual_person = api(name=expected_person.name)
 
         assert actual_person == expected_person
+
+
+def test_data_error_raised():
+    class Person(Model):
+        name = StringType(required=True, min_length=4)
+
+    class PersonAPI(HTTPEater):
+        request_cls = Person
+        response_cls = Person
+        url = 'http://example.com/person'
+
+    api = PersonAPI()
+
+    with pytest.raises(DataError):
+        with requests_mock.Mocker() as mock:
+            mock.get(
+                api.url,
+                json={'name': 'Joh'},
+                headers=CaseInsensitiveDict({
+                    'Content-Type': 'application/json'
+                })
+            )
+            api(name='John')
