@@ -17,8 +17,8 @@ install:
   - pip install -r requirements/docs.txt
 
 script:
-  - py.test --cov=schematics_xml
-  - pylint schematics_xml
+  - py.test --cov=eater
+  - pylint eater
   - cd docs && make clean html
 
 after_success:
