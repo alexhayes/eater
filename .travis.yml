@@ -1,0 +1,38 @@
+language: python
+matrix:
+  include:
+    # Python 3.4
+    - python: 3.4
+      env: TOXENV=py34
+
+    # Python 3.3
+    - python: 3.3
+      env: TOXENV=py33
+
+    # Python 3.5
+    - python: 3.5
+      env: TOXENV=py35
+
+    # pypy
+    - python: pypy
+      env: TOXENV=pypy
+
+    # pypy3
+    - python: pypy3
+      env: TOXENV=pypy3
+
+  allow_failures:
+    - python: pypy
+    - python: pypy3
+
+install:
+  - pip install -r requirements/test.txt
+  - pip install -r requirements/docs.txt
+
+script:
+  - py.test --cov=schematics_xml
+  - pylint schematics_xml
+  - cd docs && make clean html
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
