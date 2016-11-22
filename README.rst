@@ -2,7 +2,7 @@
 eater
 =====
 
-Consume APIs and hold them to account using schematics_.
+Consume APIs and hold them to account.
 
 .. image:: https://travis-ci.org/alexhayes/eater.png?branch=master
     :target: https://travis-ci.org/alexhayes/eater
