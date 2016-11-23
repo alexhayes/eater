@@ -3,7 +3,7 @@
     eater.api
     ~~~~~~~~~
 
-    Eater API classes and utilities.
+    Eater HTTP API classes.
 """
 
 from abc import abstractmethod
@@ -19,6 +19,11 @@ from eater.errors import EaterTimeoutError, EaterConnectError, EaterUnexpectedEr
 class HTTPEater(BaseEater):
     """
     Eat JSON HTTP APIs for breakfast.
+
+    Instances of this class can't be created directly, you must subclass this class and set ``url`` and
+    ``response_cls``.
+
+    See :doc:`/usage` for more details.
     """
 
     #: Default request_cls to None
@@ -45,18 +50,26 @@ class HTTPEater(BaseEater):
     @abstractmethod
     def url(self) -> str:
         """
-        Returns the URL to the endpoint.
+        Returns the URL to the endpoint - property must be defined by a subclass.
         """
 
     def get_url(self, request_model: Union[Model, None]) -> str:
         """
         Retrieve the URL to be used for the request.
+
+        :param request_model: An instance of the ``request_cls`` or ``None``.
+        :type request_model: Model|None
+        :return: The URL to the API endpoint.
+        :rtype: str
         """
         return self.url.format(request_model=request_model)
 
     def request(self, request_model: Model=None, **kwargs) -> Model:
         """
         Make a HTTP request of of type method.
+
+        You should generally leave this method alone. If you need to customise the behaviour use the methods that
+        this method uses.
         """
         request_model = self.create_request_model(request_model=request_model, **kwargs)
         url = self.get_url(request_model)
@@ -81,7 +94,9 @@ class HTTPEater(BaseEater):
         Given a requests Response object, return the response model.
 
         :param response: A requests.Response object representing the response from the API.
-        :param request_model: The model used to generate the request.
+        :type response: requests.Response
+        :param request_model: The model used to generate the request - an instance of ``request_cls``.
+        :type request_model: schematics.Model
         """
         if response.status_code >= 400:
             raise EaterUnexpectedError("Received unexpected HTTP response '%s %s' for URL '%s'." % (
@@ -104,6 +119,13 @@ class HTTPEater(BaseEater):
     def create_request_model(self, request_model: Model=None, **kwargs) -> Model:
         """
         Create the request model either from kwargs or request_model.
+
+        :param request_model: An instance of ``request_cls`` or None.
+        :type request_model: Model|None
+        :param kwargs: kwargs to be supplied as the ``raw_data`` parameter when instantiating ``request_cls``.
+        :type kwargs: dict
+        :return: An instance of ``request_cls``.
+        :rtype: schematics.Model
         """
         if request_model is None and self.request_cls is not None:
             request_model = self.request_cls(raw_data=kwargs)  # pylint: disable=not-callable
@@ -112,6 +134,13 @@ class HTTPEater(BaseEater):
     def get_request_kwargs(self, request_model: Union[Model, None], **kwargs) -> dict:  # pylint: disable=no-self-use
         """
         Retrieve a dict of kwargs to supply to requests.
+
+        :param request_model: An instance of ``request_cls`` or None.
+        :type request_model: Model|None
+        :param kwargs: kwargs to be supplied as the ``raw_data`` parameter when instantiating ``request_cls``.
+        :type kwargs: dict
+        :return: A dict of kwargs to be supplied to requests when making a HTTP call.
+        :rtype: dict
         """
         if request_model is not None:
             kwargs['json'] = request_model.to_primitive()
@@ -120,6 +149,13 @@ class HTTPEater(BaseEater):
     def create_session(self, auth: tuple=None, headers: requests.structures.CaseInsensitiveDict=None) -> requests.Session:
         """
         Create an instance of a requests Session.
+
+        :param auth: The ``auth`` kwarg when to supply when instantiating ``requests.Session``.
+        :type auth: tupel|None
+        :param headers: A dict of headers to be supplied as the ``headers`` kwarg when instantiating ``requests.Session``.
+        :type headers: requests.structures.CaseInsensitiveDict
+        :return: An instance of ``requests.Session``
+        :rtype: requests.Session
         """
         if self.session is None:
             self.session = requests.Session()

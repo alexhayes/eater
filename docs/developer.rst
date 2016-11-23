@@ -45,7 +45,7 @@ Running pylint is easy and is part of the CI;
 
 .. code-block:: pylint
 
-    pylint
+    pylint eater
 
 
 Creating Documentation
