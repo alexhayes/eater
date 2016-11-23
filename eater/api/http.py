@@ -7,6 +7,7 @@
 """
 
 from abc import abstractmethod
+from typing import Union
 
 import requests
 from schematics import Model
@@ -19,6 +20,9 @@ class HTTPEater(BaseEater):
     """
     Eat JSON HTTP APIs for breakfast.
     """
+
+    #: Default request_cls to None
+    request_cls = None
 
     #: An instance of requests Session
     session = None
@@ -44,13 +48,13 @@ class HTTPEater(BaseEater):
         Returns the URL to the endpoint.
         """
 
-    def get_url(self, request_model: Model) -> str:
+    def get_url(self, request_model: Union[Model, None]) -> str:
         """
         Retrieve the URL to be used for the request.
         """
         return self.url.format(request_model=request_model)
 
-    def request(self, *, request_model: Model=None, **kwargs) -> Model:
+    def request(self, request_model: Model=None, **kwargs) -> Model:
         """
         Make a HTTP request of of type method.
         """
@@ -101,15 +105,16 @@ class HTTPEater(BaseEater):
         """
         Create the request model either from kwargs or request_model.
         """
-        if request_model is None:
-            request_model = self.request_cls(raw_data=kwargs)
+        if request_model is None and self.request_cls is not None:
+            request_model = self.request_cls(raw_data=kwargs)  # pylint: disable=not-callable
         return request_model
 
-    def get_request_kwargs(self, request_model: Model, **kwargs) -> dict:  # pylint: disable=no-self-use
+    def get_request_kwargs(self, request_model: Union[Model, None], **kwargs) -> dict:  # pylint: disable=no-self-use
         """
         Retrieve a dict of kwargs to supply to requests.
         """
-        kwargs['json'] = request_model.to_primitive()
+        if request_model is not None:
+            kwargs['json'] = request_model.to_primitive()
         return kwargs
 
     def create_session(self, auth: tuple=None, headers: requests.structures.CaseInsensitiveDict=None) -> requests.Session:
