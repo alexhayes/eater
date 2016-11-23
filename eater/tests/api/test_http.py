@@ -99,3 +99,52 @@ def test_data_error_raised():
                 })
             )
             api(name='John')
+
+
+def test_url_formatting():
+    class Person(Model):
+        name = StringType()
+
+    class GetPersonAPI(HTTPEater):
+        request_cls = Person
+        response_cls = Person
+        url = 'http://example.com/person/{request_model.name}/'
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/person/John/',
+            json={'name': 'John'},
+            headers=CaseInsensitiveDict({
+                'Content-Type': 'application/json'
+            })
+        )
+        response = api(name='John')
+        assert response.name == 'John'
+
+
+def test_get_url():
+    class Person(Model):
+        name = StringType()
+
+    class GetPersonAPI(HTTPEater):
+        request_cls = Person
+        response_cls = Person
+        url = 'http://example.com/person/'
+
+        def get_url(self, request_model: Person) -> str:
+            return '%s%s/' % (self.url, request_model.name)
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/person/John/',
+            json={'name': 'John'},
+            headers=CaseInsensitiveDict({
+                'Content-Type': 'application/json'
+            })
+        )
+        response = api(name='John')
+        assert response.name == 'John'

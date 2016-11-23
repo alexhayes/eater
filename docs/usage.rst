@@ -21,7 +21,7 @@ of communicating with.
     
     class Request(Model):
         """
-        Represents, as a Python object, the JSON data required by the API.
+        Represents, as a Python object, the JSON request required by the API.
         """
         in_print = BooleanType()
     
@@ -125,15 +125,33 @@ HEAD, OPTIONS``.
 Dynamic URL
 -----------
 
-The ``url`` is just a property, thus you can define it dynamically;
+The ``url`` can contain string formatting that refers the request model, like so;
 
 .. code-block:: python
 
-    class BooksAPI(eater.HTTPEater):
+    class GetBookRequest(Model):
+        id = IntType(required=True, min_value=1)
 
-        @property
-        def url(self):
-            return 'http://path.to.awesome/'
+    class GetBookAPI(eater.HTTPEater):
+        url = 'http://path.to.awesome/{request_model.id}'
+        request_cls = GetBookRequest
+        response_cls = Book
+
+For more control you can also override the ``get_url`` method;
+
+.. code-block:: python
+
+    class GetBookAPI(eater.HTTPEater):
+        url = 'http://path.to.awesome/'
+        request_cls = GetBookRequest
+        response_cls = Book
+
+        def get_url(self, request_model: Model) -> str:
+            if request_model.id < 100:
+                return 'http://path.to.less.awesome/'
+            else:
+                return self.url
+
 
 
 Control Request Parameters
@@ -165,11 +183,12 @@ However, a better way of settings ``kwargs['params']`` above would be;
 Auth, Headers & Sessions
 ------------------------
 
-Under the covers HTTPEater automatically creates a requests.Session for you.
+Under the covers ``HTTPEater`` automatically creates a ``requests.Session`` for
+you.
 
-When you create an instance of HTTPEater you can pass through kwargs that will
-be applied to this generated session, or optionally you can pass in a session
-object of your creation.
+When you create an instance of your class that inherits ``HTTPEater`` you can
+pass through kwargs that will be applied to this generated session, or
+optionally you can pass in a session object of your creation.
 
 .. code-block:: python
 
