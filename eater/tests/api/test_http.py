@@ -7,15 +7,15 @@
     Tests on :py:mod:`eater.api.http`
 """
 
-import requests
-from requests.structures import CaseInsensitiveDict
 import pytest
+import requests
 import requests_mock
+from requests.structures import CaseInsensitiveDict
 from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import StringType
 
-from eater import HTTPEater
+from eater import HTTPEater, EaterTimeoutError, EaterConnectError
 
 
 def test_can_subclass():
@@ -224,3 +224,43 @@ def test_create_session():
 
     api = GetPersonAPI()
     assert api.session.auth == ('john', 's3cr3t')
+
+
+def test_requests_timeout():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    def timeout(*args, **kwargs):  # pylint: disable=unused-argument
+        raise requests.Timeout()
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            text=timeout
+        )
+        with pytest.raises(EaterTimeoutError):
+            api()
+
+
+def test_requests_connecterror():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    def connect(*args, **kwargs):  # pylint: disable=unused-argument
+        raise requests.ConnectionError()
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            text=connect
+        )
+        with pytest.raises(EaterConnectError):
+            api()
