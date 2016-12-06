@@ -35,13 +35,21 @@ class HTTPEater(BaseEater):
     #: The HTTP method to use to make the API call.
     method = 'get'
 
-    def __init__(self, *,
-                 session: requests.Session=None,
-                 auth: tuple=None,
-                 headers: requests.structures.CaseInsensitiveDict=None):
+    def __init__(self, request_model: Model=None, *, _requests: dict={}, **kwargs):
+        """
+        Initialise instance of HTTPEater.
 
-        if session is None:
-            self.create_session(auth, headers)
+        :param request_model: An instance of a schematics model
+        :type request_model: Model
+        :param _requests: A dict of kwargs to be supplied when creating a requests session.
+        :type _requests: dict
+        :param kwargs: If request_model is not defined a dict of kwargs to be supplied as the first argument
+                       ``raw_data`` when creating an instance of ``request_cls``.
+        :type kwargs: dict
+        """
+        self.request_model = self.create_request_model(request_model=request_model, **kwargs)
+        self.url = self.get_url()
+        self.session = self.create_session(**_requests)
 
     def __call__(self, *args, **kwargs):
         return self.request(*args, **kwargs)
@@ -51,18 +59,22 @@ class HTTPEater(BaseEater):
     def url(self) -> str:
         """
         Returns the URL to the endpoint - property must be defined by a subclass.
+
+        Note that this property is replaced with the value of :py:meth:`.HTTPEater.get_url` within
+        :py:meth:`.HTTPEater.__init__`.
         """
 
-    def get_url(self, request_model: Union[Model, None]) -> str:
+    def get_url(self) -> str:
         """
         Retrieve the URL to be used for the request.
 
-        :param request_model: An instance of the ``request_cls`` or ``None``.
-        :type request_model: Model|None
+        Note that this method should always use ``type(self).url`` to access the ``url`` property defined on the class.
+        This is necessary because the ``url`` property is replaced in :py:meth:`.HTTPEater.__init__`.
+
         :return: The URL to the API endpoint.
         :rtype: str
         """
-        return self.url.format(request_model=request_model)
+        return type(self).url.format(request_model=self.request_model)
 
     def request(self, request_model: Model=None, **kwargs) -> Model:
         """
@@ -72,7 +84,7 @@ class HTTPEater(BaseEater):
         this method uses.
         """
         request_model = self.create_request_model(request_model=request_model, **kwargs)
-        url = self.get_url(request_model)
+        url = self.get_url()
         kwargs = self.get_request_kwargs(request_model=request_model)
 
         try:
@@ -107,7 +119,7 @@ class HTTPEater(BaseEater):
 
         if response.headers['content-type'] == 'application/json':
             raw_data = response.json()
-            return self.response_cls(raw_data=raw_data, validate=True)
+            return self.response_cls(raw_data=raw_data, validate=True, partial=False)
 
         raise NotImplementedError(
             "Content type '%s' is not implemented. Class %s should implement a handle_response method." % (
@@ -146,9 +158,14 @@ class HTTPEater(BaseEater):
             kwargs['json'] = request_model.to_primitive()
         return kwargs
 
-    def create_session(self, auth: tuple=None, headers: requests.structures.CaseInsensitiveDict=None) -> requests.Session:
+    def create_session(  # pylint: disable=no-self-use
+            self,
+            session: requests.Session=None,
+            auth: tuple=None,
+            headers: requests.structures.CaseInsensitiveDict=None
+        ) -> requests.Session:
         """
-        Create an instance of a requests Session.
+        Create and return an instance of a requests Session.
 
         :param auth: The ``auth`` kwarg when to supply when instantiating ``requests.Session``.
         :type auth: tupel|None
@@ -157,10 +174,13 @@ class HTTPEater(BaseEater):
         :return: An instance of ``requests.Session``
         :rtype: requests.Session
         """
-        if self.session is None:
-            self.session = requests.Session()
-            if auth:
-                self.session.auth = auth
-            if headers:
-                self.session.headers.update(headers)
-        return self.session
+        if session is None:
+            session = requests.Session()
+
+        if auth:
+            session.auth = auth
+
+        if headers:
+            session.headers.update(headers)
+
+        return session
