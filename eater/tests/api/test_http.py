@@ -15,7 +15,7 @@ from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import StringType
 
-from eater import HTTPEater, EaterTimeoutError, EaterConnectError
+from eater import HTTPEater, EaterTimeoutError, EaterConnectError, EaterUnexpectedError
 
 
 def test_can_subclass():
@@ -263,4 +263,21 @@ def test_requests_connecterror():
             text=connect
         )
         with pytest.raises(EaterConnectError):
+            api()
+
+
+def test_status_code_gte_400():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            status_code=400,
+        )
+        with pytest.raises(EaterUnexpectedError):
             api()
