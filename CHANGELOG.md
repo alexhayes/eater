@@ -1,3 +1,8 @@
+# Release 0.3.0 - Wednesday 7 December  08:49:59 AEDT 2016
+
+- Breaking API change: __init__ takes arguments for call to create request_cls instance rather than __call__.
+- Increase coverage of HTTPEater (#2)
+
 # Release 0.2.0 - Thursday 24 November  11:04:08 AEDT 2016
 
 - Lots of documentation updates.
