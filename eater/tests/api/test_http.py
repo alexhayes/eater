@@ -8,13 +8,14 @@
 """
 
 import pytest
+import requests
 from requests.structures import CaseInsensitiveDict
 import requests_mock
 from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import StringType
 
-from eater import HTTPEater
+from eater import HTTPEater, EaterTimeoutError, EaterConnectError, EaterUnexpectedError
 
 
 def test_can_subclass():
@@ -192,3 +193,111 @@ def test_get_url():
         )
         response = api()
         assert response.name == 'John'
+
+
+def test_requests_parameter():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/person/'
+
+    api = GetPersonAPI(_requests={
+        'auth': ('john', 's3cr3t'),
+        'headers': {
+            'EGGS': 'Sausage'
+        }
+    })
+    assert api.session.auth == ('john', 's3cr3t')
+    assert api.session.headers['EGGS'] == 'Sausage'
+
+
+def test_create_session():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/person/'
+
+        def create_session(self, session: requests.Session=None, **kwargs):  # pylint: disable=unused-argument
+            session = requests.Session()
+            session.auth = ('john', 's3cr3t')
+            return session
+
+    api = GetPersonAPI()
+    assert api.session.auth == ('john', 's3cr3t')
+
+
+def test_requests_timeout():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    def timeout(*args, **kwargs):  # pylint: disable=unused-argument
+        raise requests.Timeout()
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            text=timeout
+        )
+        with pytest.raises(EaterTimeoutError):
+            api()
+
+
+def test_requests_connecterror():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    def connect(*args, **kwargs):  # pylint: disable=unused-argument
+        raise requests.ConnectionError()
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            text=connect
+        )
+        with pytest.raises(EaterConnectError):
+            api()
+
+
+def test_status_code_gte_400():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            status_code=400,
+        )
+        with pytest.raises(EaterUnexpectedError):
+            api()
+
+
+def test_non_json_content_response():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            text='Hello world',
+            headers=CaseInsensitiveDict({
+                'Content-Type': 'text/plain'
+            })
+        )
+        with pytest.raises(NotImplementedError):
+            api()
