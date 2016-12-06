@@ -9,8 +9,8 @@
 
 import pytest
 import requests
-import requests_mock
 from requests.structures import CaseInsensitiveDict
+import requests_mock
 from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import StringType
@@ -280,4 +280,24 @@ def test_status_code_gte_400():
             status_code=400,
         )
         with pytest.raises(EaterUnexpectedError):
+            api()
+
+
+def test_non_json_content_response():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+    api = GetPersonAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            'http://example.com/',
+            text='Hello world',
+            headers=CaseInsensitiveDict({
+                'Content-Type': 'text/plain'
+            })
+        )
+        with pytest.raises(NotImplementedError):
             api()
