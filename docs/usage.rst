@@ -96,14 +96,14 @@ this by setting ``method`` on your API class;
         method = 'post'
         ...
 
-Any request method supported by requests_ is supported, ie... ``get, post, put,
+Any request method supported by requests_ are supported, ie... ``get, post, put,
 delete, head, options``.
 
 
 Post Data
 ---------
 
-You can send a JSON object over the wire by defining a ``request_cls`` on your API
+You can POST a JSON object over the wire by defining a ``request_cls`` on your API
 class, as follows;
 
 .. code-block:: python
@@ -118,8 +118,8 @@ You can then call your API as follows;
 
 .. code-block:: python
 
-    api = BookCreateAPI()
-    response = api(name='Awesome Book')
+    api = BookCreateAPI(name='Awesome Book')
+    response = api()
 
 Which would result in the following JSON payload being sent to the server;
 
@@ -135,7 +135,8 @@ It's also possible to pass in an instance of your ``request_cls`` as the first
 .. code-block:: python
 
     book = Book({'name': 'Awesome Book'})
-    response = api(book)
+    api = BookCreateAPI(book)
+    response = api()
 
 Dynamic URL
 -----------
@@ -153,20 +154,42 @@ The ``url`` can contain string formatting that refers the request model, like so
         request_cls = GetBookRequest
         response_cls = Book
 
+
+To retrieve the formatted URL you can call ``.url`` on the instance and it will
+give you the formatted URL.
+
+.. code-block:: python
+
+    api = GetBookAPI(id=1234)
+    print(api.url)
+    # prints: http://path.to.awesome/1324
+
+If you need to get the unformatted URL you must call ``.url`` on the class:
+
+.. code-block:: python
+
+    print(GetBookAPI.url)
+    # prints: http://path.to.awesome/{request_model.id}
+
 For more control you can also override the ``get_url`` method;
 
 .. code-block:: python
 
     class GetBookAPI(eater.HTTPEater):
-        url = 'http://path.to.awesome/'
+        url = 'http://path.to.awesome/{request_model.id}'
         request_cls = GetBookRequest
         response_cls = Book
 
-        def get_url(self, request_model: Model) -> str:
-            if request_model.id < 100:
-                return 'http://path.to.less.awesome/'
+        def get_url(self) -> str:
+            if self.request_model.id < 100:
+                url = 'http://path.to.less.awesome/{request_model.id}'
             else:
-                return self.url
+                url = type(self).url
+            return url.format(request_model=request_model)
+
+It's important to note that in your ``get_url`` method you should use
+``type(self).url`` rather than ``self.url``. This is because ``self.url`` is
+replaced with the formatted URL within HTTPEater's ``__init__`` function.
 
 
 More Control
@@ -213,42 +236,47 @@ you can pass in a session object of your creation.
 
 .. code-block:: python
 
-    api = BookListAPI(auth=('john', 's3cr3t'))
+    api = BookListAPI(_requests={'auth': ('john', 's3cr3t')})
 
 Need to set a custom header?
 
 .. code-block:: python
 
-    api = BookListAPI(headers={'EGGS': 'Sausage'})
+    api = BookListAPI(_requests={'headers': {'EGGS': 'Sausage'}})
 
 Or need to do something really special with your own custom session?
 
 .. code-block:: python
 
     session = requests.Session()
-    api = BookListAPI(session=session)
+    api = BookListAPI(_requests={'session': session})
 
-Alternatively you can override the ``create_session`` method on your ``BookListAPI``
-class;
+Alternatively a nicer approach than supplying ``_requests`` every time you
+instantiate your API is to subclass ``HTTPEater``, define a ``create_session``
+method and have your ``BookListAPI`` class inherit from your subclass.
 
 .. code-block:: python
 
-    class BookListAPI(eater.HTTPEater):
+    class AwesomeAPI(eater.HTTPEater):
+
+        def create_session(self, **kwargs):
+            """
+            Ensure we set auth for all API calls...
+            """
+            self.session = requests.Session()
+            # Get auth details from settings, or if you're feeling reckless just hard code them...
+            self.session.auth = ('john', 's3cr3t')
+            self.session.headers.update({'EGGS', 'Sausage'})
+            return self.session
+
+
+    class BookListAPI(AwesomeAPI):
         url = 'https://example.com/books/'
         request_cls = BookListRequest
         response_cls = Response
 
-        def create_session(self, auth: tuple=None, headers: requests.structures.CaseInsensitiveDict=None) -> requests.Session:
-            """
-            Create an instance of a requests Session.
-            """
-            if self.session is None:
-                self.session = requests.Session()
-                if auth:
-                    self.session.auth = auth
-                if headers:
-                    self.session.headers.update(headers)
-            return self.session
+This way, whenever you use the BookListAPI it will automatically have your auth
+details set.
 
 
 Control everything!
