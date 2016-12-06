@@ -30,6 +30,7 @@ pygments_style = 'sphinx'
 html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 htmlhelp_basename = '%sdoc' % project
+autoclass_content = 'both'
 
 latex_documents = [
     ('index', '%s.tex' % project, u'%s Documentation' % project, copyright_holder, 'manual'),
@@ -48,6 +49,9 @@ release = version
 
 
 def autodoc_skip_member(app, what, name, obj, skip, options):
+    if name == '__init__':
+        return False
+
     exclusions = ('__weakref__',  # special-members
                   '__doc__', '__module__', '__dict__',  # undoc-members
                   )
