@@ -7,8 +7,9 @@
     Tests on :py:mod:`eater.api.http`
 """
 
-import pytest
+import requests
 from requests.structures import CaseInsensitiveDict
+import pytest
 import requests_mock
 from schematics import Model
 from schematics.exceptions import DataError
@@ -192,3 +193,34 @@ def test_get_url():
         )
         response = api()
         assert response.name == 'John'
+
+
+def test_requests_parameter():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/person/'
+
+    api = GetPersonAPI(_requests={
+        'auth': ('john', 's3cr3t'),
+        'headers': {
+            'EGGS': 'Sausage'
+        }
+    })
+    assert api.session.auth == ('john', 's3cr3t')
+    assert api.session.headers['EGGS'] == 'Sausage'
+
+
+def test_create_session():
+    class GetPersonAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/person/'
+
+        def create_session(self, session: requests.Session=None, **kwargs):  # pylint: disable=unused-argument
+            session = requests.Session()
+            session.auth = ('john', 's3cr3t')
+            return session
+
+    api = GetPersonAPI()
+    assert api.session.auth == ('john', 's3cr3t')
