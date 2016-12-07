@@ -13,7 +13,7 @@ from requests.structures import CaseInsensitiveDict
 import requests_mock
 from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import StringType
+from schematics.types import StringType, IntType, ModelType
 
 from eater import HTTPEater, EaterTimeoutError, EaterConnectError, EaterUnexpectedError
 
@@ -90,6 +90,46 @@ def test_get_request():
         api = PersonAPI(expected_person)
         actual_person = api()
         assert actual_person == expected_person
+
+
+def test_post_request():
+    class Person(Model):
+        pk = IntType()  # pylint: disable=invalid-name
+        name = StringType()
+
+    class UpdatePersonResponse(Model):
+        status = StringType()
+        person = ModelType(Person)
+
+    class UpdatePersonAPI(HTTPEater):
+        request_cls = Person
+        response_cls = UpdatePersonResponse
+        method = 'post'
+        url = 'http://example.com/person/{request_model.pk}/'
+
+    expected_request = Person(dict(pk=1, name='John'))
+    expected_response = UpdatePersonResponse(dict(status='success', person=expected_request))
+    api = UpdatePersonAPI(expected_request)
+
+    with requests_mock.Mocker() as mock:
+        mock.post(
+            api.url,
+            json=expected_response.to_primitive(),
+            headers=CaseInsensitiveDict({
+                'Content-Type': 'application/json'
+            })
+        )
+
+        actual_response = api()
+        assert actual_response == expected_response
+
+        # Assert we sent the correct request
+        assert mock.called is True
+        assert mock.call_count == 1
+        request = mock.request_history[0]
+        actual_request = api.request_cls(request.json())
+        assert actual_request.to_primitive() == expected_request.to_primitive()
+        requests_mock.request_history = None
 
 
 def test_request_cls_none():
