@@ -1,3 +1,7 @@
+# Release 0.3.1 - Wednesday 7 December  22:50:11 AEDT 2016
+
+- Fixed issue with request data not being sent correctly. (#3)
+
 # Release 0.3.0 - Wednesday 7 December  08:49:59 AEDT 2016
 
 - Breaking API change: __init__ takes arguments for call to create request_cls instance rather than __call__.

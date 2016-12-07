@@ -83,23 +83,21 @@ class HTTPEater(BaseEater):
         You should generally leave this method alone. If you need to customise the behaviour use the methods that
         this method uses.
         """
-        request_model = self.create_request_model(request_model=request_model, **kwargs)
-        url = self.get_url()
-        kwargs = self.get_request_kwargs(request_model=request_model)
+        kwargs = self.get_request_kwargs(request_model=self.request_model)
 
         try:
-            response = getattr(self.session, self.method)(url, **kwargs)
+            response = getattr(self.session, self.method)(self.url, **kwargs)
             return self.create_response_model(response, request_model)
 
         except requests.Timeout:
             raise EaterTimeoutError("%s.%s for URL '%s' timed out." % (
                 type(self).__name__,
                 self.method,
-                url
+                self.url
             ))
 
         except requests.RequestException as exc_info:
-            raise EaterConnectError("Exception raised for URL '%s'." % url) from exc_info
+            raise EaterConnectError("Exception raised for URL '%s'." % self.url) from exc_info
 
     def create_response_model(self, response: requests.Response, request_model: Model) -> Model:  # pylint: disable=unused-argument
         """
