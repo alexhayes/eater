@@ -1,3 +1,10 @@
+# Release 0.4.0 - Friday 9 December  07:17:38 AEDT 2016
+
+- Added test to ensure the session can be manipulated in get_request_kwargs
+- Added test to ensure the method can be manipulated in get_request_kwargs
+- Cleanup repetition of content-type headers in test_http
+- Allow the URL used to make the API request to be manipulated in get_request_kwargs (#5)
+
 # Release 0.3.2 - Friday 9 December  06:15:46 AEDT 2016
 
 - Fixed issue where request_model was incorrectly included in signature to request method. (#4)
