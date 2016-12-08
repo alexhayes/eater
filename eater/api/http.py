@@ -84,11 +84,14 @@ class HTTPEater(BaseEater):
         this method uses.
         """
         kwargs = self.get_request_kwargs(request_model=self.request_model, **kwargs)
-        method = kwargs.pop('method', self.method)
-        session = kwargs.pop('session', self.session)
+
+        # get_request_kwargs can permanently alter the url, method and session
+        self.url = kwargs.pop('url', self.url)
+        self.method = kwargs.pop('method', self.method)
+        self.session = kwargs.pop('session', self.session)
 
         try:
-            response = getattr(session, method)(self.url, **kwargs)
+            response = getattr(self.session, self.method)(self.url, **kwargs)
             return self.create_response_model(response, self.request_model)
 
         except requests.Timeout:
