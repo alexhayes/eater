@@ -248,13 +248,30 @@ def test_get_request_kwargs_url():
     api = URLManipulatingAPI()
 
     with requests_mock.Mocker() as mock:
-        mock.get(
-            expected_url,
-            json={},
-            headers=JSON_HEADERS
-        )
+        mock.get(expected_url, json={}, headers=JSON_HEADERS)
         api()
         assert api.url == expected_url
+
+
+def test_get_request_kwargs_method():
+    """
+    Test that get_request_kwargs can manipulate the method.
+    """
+    class MethodManipulatingAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+        def get_request_kwargs(self, request_model: Union[Model, None], **kwargs):
+            kwargs['method'] = 'post'
+            return kwargs
+
+    api = MethodManipulatingAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.post(api.url, json={}, headers=JSON_HEADERS)
+        api()
+        assert api.method == 'post'
 
 
 def test_requests_parameter():
