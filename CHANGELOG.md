@@ -1,3 +1,8 @@
+# Release 0.3.2 - Friday 9 December  06:15:46 AEDT 2016
+
+- Fixed issue where request_model was incorrectly included in signature to request method. (#4)
+- Cleanup internals of the request method - method and session can now be supplied as kwargs to __call__ or returned by get_request_kwargs.
+
 # Release 0.3.1 - Wednesday 7 December  22:50:11 AEDT 2016
 
 - Fixed issue with request data not being sent correctly. (#3)
