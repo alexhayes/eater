@@ -76,18 +76,20 @@ class HTTPEater(BaseEater):
         """
         return type(self).url.format(request_model=self.request_model)
 
-    def request(self, request_model: Model=None, **kwargs) -> Model:
+    def request(self, **kwargs) -> Model:
         """
         Make a HTTP request of of type method.
 
         You should generally leave this method alone. If you need to customise the behaviour use the methods that
         this method uses.
         """
-        kwargs = self.get_request_kwargs(request_model=self.request_model)
+        kwargs = self.get_request_kwargs(request_model=self.request_model, **kwargs)
+        method = kwargs.pop('method', self.method)
+        session = kwargs.pop('session', self.session)
 
         try:
-            response = getattr(self.session, self.method)(self.url, **kwargs)
-            return self.create_response_model(response, request_model)
+            response = getattr(session, method)(self.url, **kwargs)
+            return self.create_response_model(response, self.request_model)
 
         except requests.Timeout:
             raise EaterTimeoutError("%s.%s for URL '%s' timed out." % (
