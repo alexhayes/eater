@@ -6,6 +6,7 @@
 
     Tests on :py:mod:`eater.api.http`
 """
+from typing import Union
 
 import pytest
 import requests
@@ -233,6 +234,35 @@ def test_get_url():
         )
         response = api()
         assert response.name == 'John'
+
+
+def test_get_request_kwargs_url():
+    """
+    Test that get_request_kwargs can manipulate the url.
+    """
+    class URLManipulatingAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://not-the-real-url.com/'
+
+        def get_request_kwargs(self, request_model: Union[Model, None], **kwargs):
+            kwargs['url'] = 'http://the-real-url.com'
+            return kwargs
+
+    expected_url = 'http://the-real-url.com'
+
+    api = URLManipulatingAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            expected_url,
+            json={},
+            headers=CaseInsensitiveDict({
+                'Content-Type': 'application/json'
+            })
+        )
+        api()
+        assert api.url == expected_url
 
 
 def test_requests_parameter():
