@@ -6,6 +6,7 @@
 
     Tests on :py:mod:`eater.api.http`
 """
+from typing import Union
 
 import pytest
 import requests
@@ -16,6 +17,10 @@ from schematics.exceptions import DataError
 from schematics.types import StringType, IntType, ModelType
 
 from eater import HTTPEater, EaterTimeoutError, EaterConnectError, EaterUnexpectedError
+
+JSON_HEADERS = CaseInsensitiveDict({
+    'Content-Type': 'application/json'
+})
 
 
 def test_can_subclass():
@@ -78,9 +83,7 @@ def test_get_request():
         mock.get(
             api.url,
             json=expected_person.to_primitive(),
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
 
         actual_person = api()
@@ -115,9 +118,7 @@ def test_post_request():
         mock.post(
             api.url,
             json=expected_response.to_primitive(),
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
 
         actual_response = api()
@@ -148,9 +149,7 @@ def test_request_cls_none():
         mock.get(
             api.url,
             json=expected_person.to_primitive(),
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
 
         actual_person = api()
@@ -198,9 +197,7 @@ def test_url_formatting():
         mock.get(
             expected_url,
             json={'name': 'John'},
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
         response = api()
         assert response.name == 'John'
@@ -227,12 +224,77 @@ def test_get_url():
         mock.get(
             'http://example.com/person/John/',
             json={'name': 'John'},
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
         response = api()
         assert response.name == 'John'
+
+
+def test_get_request_kwargs_url():
+    """
+    Test that get_request_kwargs can manipulate the url.
+    """
+    class URLManipulatingAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://not-the-real-url.com/'
+
+        def get_request_kwargs(self, request_model: Union[Model, None], **kwargs):
+            kwargs['url'] = 'http://the-real-url.com'
+            return kwargs
+
+    expected_url = 'http://the-real-url.com'
+
+    api = URLManipulatingAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(expected_url, json={}, headers=JSON_HEADERS)
+        api()
+        assert api.url == expected_url
+
+
+def test_get_request_kwargs_method():
+    """
+    Test that get_request_kwargs can manipulate the method.
+    """
+    class MethodManipulatingAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+        def get_request_kwargs(self, request_model: Union[Model, None], **kwargs):
+            kwargs['method'] = 'post'
+            return kwargs
+
+    api = MethodManipulatingAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.post(api.url, json={}, headers=JSON_HEADERS)
+        api()
+        assert api.method == 'post'
+
+
+def test_get_request_kwargs_session():
+    """
+    Test that get_request_kwargs can manipulate the session.
+    """
+    class SessionManipulatingAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+        def get_request_kwargs(self, request_model: Union[Model, None], **kwargs):
+            session = requests.Session()
+            session.auth = ('john', 's3cr3t')
+            kwargs['session'] = session
+            return kwargs
+
+    api = SessionManipulatingAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(api.url, json={}, headers=JSON_HEADERS)
+        api()
+        assert api.session.auth == ('john', 's3cr3t')
 
 
 def test_requests_parameter():
