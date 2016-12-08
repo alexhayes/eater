@@ -274,6 +274,29 @@ def test_get_request_kwargs_method():
         assert api.method == 'post'
 
 
+def test_get_request_kwargs_session():
+    """
+    Test that get_request_kwargs can manipulate the session.
+    """
+    class SessionManipulatingAPI(HTTPEater):
+        request_cls = Model
+        response_cls = Model
+        url = 'http://example.com/'
+
+        def get_request_kwargs(self, request_model: Union[Model, None], **kwargs):
+            session = requests.Session()
+            session.auth = ('john', 's3cr3t')
+            kwargs['session'] = session
+            return kwargs
+
+    api = SessionManipulatingAPI()
+
+    with requests_mock.Mocker() as mock:
+        mock.get(api.url, json={}, headers=JSON_HEADERS)
+        api()
+        assert api.session.auth == ('john', 's3cr3t')
+
+
 def test_requests_parameter():
     class GetPersonAPI(HTTPEater):
         request_cls = Model
