@@ -18,6 +18,10 @@ from schematics.types import StringType, IntType, ModelType
 
 from eater import HTTPEater, EaterTimeoutError, EaterConnectError, EaterUnexpectedError
 
+JSON_HEADERS = CaseInsensitiveDict({
+    'Content-Type': 'application/json'
+})
+
 
 def test_can_subclass():
     class PersonAPI(HTTPEater):
@@ -79,9 +83,7 @@ def test_get_request():
         mock.get(
             api.url,
             json=expected_person.to_primitive(),
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
 
         actual_person = api()
@@ -116,9 +118,7 @@ def test_post_request():
         mock.post(
             api.url,
             json=expected_response.to_primitive(),
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
 
         actual_response = api()
@@ -149,9 +149,7 @@ def test_request_cls_none():
         mock.get(
             api.url,
             json=expected_person.to_primitive(),
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
 
         actual_person = api()
@@ -199,9 +197,7 @@ def test_url_formatting():
         mock.get(
             expected_url,
             json={'name': 'John'},
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
         response = api()
         assert response.name == 'John'
@@ -228,9 +224,7 @@ def test_get_url():
         mock.get(
             'http://example.com/person/John/',
             json={'name': 'John'},
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
         response = api()
         assert response.name == 'John'
@@ -257,9 +251,7 @@ def test_get_request_kwargs_url():
         mock.get(
             expected_url,
             json={},
-            headers=CaseInsensitiveDict({
-                'Content-Type': 'application/json'
-            })
+            headers=JSON_HEADERS
         )
         api()
         assert api.url == expected_url
