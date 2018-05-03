@@ -39,10 +39,10 @@ Chances are, if you're reading this, you're trying to talk to an API just like
 this.
 
 You want to be sure, when you send them something, they give you the right
-thing back. That is, it contains the write shape of data and the correct data
+thing back. That is, it contains the right shape of data and the correct data
 types and if you're really persnickety, that it validates against defined rules.
 
-Well, this Python library, with the help of schematics_, will allow you to do
+Well, this Python library, with the help of schematics, will allow you to do
 just that.
 
 Install
